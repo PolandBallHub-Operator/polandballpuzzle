@@ -1,1 +1,50 @@
-イベントはありません。
+{
+  "version": "1.1",
+  "updatedAt": "2026-04-07T05:46:29.165Z",
+  "eventGacha": {
+    "name": "枢軸国ガチャ",
+    "cost": 40000,
+    "thumbnail": "https://raw.githubusercontent.com/PolandBallHub-Operator/polandballpuzzle/refs/heads/main/img/axispowerthumbnail.png",
+    "limit": 0,
+    "pool": [
+      "poland",
+      "japan",
+      "korea",
+      "austria",
+      "germany",
+      "Italy",
+      "empireofjapan",
+      "prussiangermany",
+      "kingdomofItaly"
+    ]
+  },
+  "newChars": {
+    "empireofjapan": {
+      "name": "大日本帝国",
+      "type": "event",
+      "skill": "custom",
+      "skillName": "一閃!!",
+      "skillReq": 10,
+      "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/War_flag_of_the_Imperial_Japanese_Army_%281868%E2%80%931945%29.svg",
+      "customCode": "// 【カスタムコード: 大日本帝国】\nconst center = { x: GW / 2, y: GH / 2 };\nconst range = 40 + (lv * 15); // レベルに応じて範囲拡大\n\n// X字のライン（左上から右下、右上から左下）に近いボールを抽出\ntargets = balls.filter(b => {\n    if (b.bType === 'bomb' || b.bType === 'israel') return false;\n    const dx = Math.abs(b.position.x - center.x);\n    const dy = Math.abs(b.position.y - center.y);\n    // X字（y=x または y=-x）の線からの距離が一定以下のものを消去\n    return Math.abs(dx - dy) < range || (dx < 20 && dy < 20);\n});\n\n// 演出：エフェクトを表示\nshowScoreEffect(center, \"一閃！\");"
+    },
+    "prussiangermany": {
+      "name": "ドイツ帝国",
+      "type": "event",
+      "skill": "custom",
+      "skillName": "プロイセン!",
+      "skillReq": 18,
+      "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Flag_of_Germany_%281867%E2%80%931918%29.svg",
+      "customCode": "// 【カスタムコード: ドイツ帝国】\nconst lineY = GH / 2;\nconst lineHeight = 60 + (lv * 10);\n\n// 1. 横ライン消去\ntargets = balls.filter(b => {\n    if (b.bType === 'bomb' || b.bType === 'israel') return false;\n    return Math.abs(b.position.y - lineY) < lineHeight;\n});\n\n// 2. 特殊効果：5秒間、出現するツムを自分(ドイツ帝国)のみにする\nconst originalChars = [...playChars];\nplayChars = [saveData.myTsum]; // 自分だけに固定\nshowScoreEffect({x: GW/2, y: lineY}, \"アイゼン・ウント・ブルート\");\n\nsetTimeout(() => {\n    playChars = originalChars; // 5秒後に戻す\n    showScoreEffect({x: GW/2, y: GH/2}, \"終了\");\n}, 5000);"
+    },
+    "kingdomofItaly": {
+      "name": "イタリア王国",
+      "type": "event",
+      "skill": "custom",
+      "skillName": "白旗〜",
+      "skillReq": 20,
+      "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Italy_%281861-1946%29_crowned.svg",
+      "customCode": "// 【カスタムコード: イタリア】\nconst duration = 5000;\nconst originalTypes = new Map();\n\n// 1. 全てのボールを一時的に「白ボール(italy)」化する\nballs.forEach(b => {\n    if (b.bType !== 'bomb' && b.bType !== 'israel') {\n        originalTypes.set(b, b.bType);\n        b.bType = 'italy'; // 全てイタリア属性にして繋げられるようにする\n        if (b.dom) {\n            b.dom.style.filter = 'grayscale(100%) brightness(1.5)';\n        }\n    }\n});\n\n// 2. 出現するツムもイタリアに固定\nconst prevChars = [...playChars];\nplayChars = ['italy'];\n\nshowScoreEffect({x: GW/2, y: GH/2}, \"パスタ・タイム！\");\n\n// 5秒後に解除\nsetTimeout(() => {\n    playChars = prevChars;\n    balls.forEach(b => {\n        if (originalTypes.has(b)) {\n            b.bType = originalTypes.get(b);\n            if (b.dom) b.dom.style.filter = '';\n        }\n    });\n}, duration);"
+    }
+  }
+}
