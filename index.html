@@ -982,7 +982,7 @@ class App {
     const char = this.getCharData(myId);
     const disp = document.getElementById('home-my-tsum');
     disp.innerHTML = this.createBallHTML(char);
-    document.getElementById('home-my-tsum-name').innerText = `マイツム: ${char.name} (Lv.${this.data.saveData.chars[myId].level})`;
+    document.getElementById('home-my-tsum-name').innerText = `マイボ: ${char.name} (Lv.${this.data.saveData.chars[myId].level})`;
   }
 
   createBallHTML(char) {
@@ -1034,7 +1034,7 @@ class App {
       <p style="font-size:0.9rem; color:#555;">${char.desc}</p>
     `;
     
-    let btns = `<button class="btn btn-blue" onclick="app.setMyTsum('${id}')">マイツムにする</button>`;
+    let btns = `<button class="btn btn-blue" onclick="app.setMyTsum('${id}')">マイボにする</button>`;
     
     // レベルアップ (コイン消費)
     if (data.level < data.cap) {
