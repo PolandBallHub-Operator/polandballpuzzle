@@ -324,14 +324,14 @@ if ('serviceWorker' in navigator) {
   <div id="home-screen" class="screen">
     <h2 style="margin-top: 20px;">HOME</h2>
     <div class="my-tsum-display" id="home-my-tsum" onclick="app.showScreen('char-screen')">
-      <!-- 選択中のツムがここに表示される -->
+      <!-- 選択中のボールがここに表示される -->
     </div>
-    <div style="text-align: center; margin-bottom: 20px; font-weight: bold;" id="home-my-tsum-name">マイツム</div>
+    <div style="text-align: center; margin-bottom: 20px; font-weight: bold;" id="home-my-tsum-name">マイボ</div>
     
     <div class="menu-grid">
       <button class="btn btn-red" style="font-size: 1.5rem; padding: 15px;" onclick="app.startGame()">PLAY</button>
       <button class="btn btn-blue" onclick="app.showScreen('gacha-screen')">ガチャ</button>
-      <button class="btn" onclick="app.showScreen('char-screen')">ツム一覧・育成</button>
+      <button class="btn" onclick="app.showScreen('char-screen')">マイボ一覧・育成</button>
       <button class="btn" onclick="app.showScreen('title-screen')">タイトルへ</button>
     </div>
   </div>
@@ -440,22 +440,22 @@ class AudioEngine {
  * キャラクターマスターデータ
  */
 const BASE_CHARS = {
-  poland: { id: 'poland', name: 'ポーランド', css: 'pb-poland', skill: 'clearCenter', skillReq: 14, desc: '画面中央のツムを消すよ！' },
-  germany: { id: 'germany', name: 'ドイツ', css: 'pb-germany', skill: 'clearRandom', skillReq: 15, desc: 'ランダムなツムを消すよ！' },
-  uk: { id: 'uk', name: 'イギリス', css: 'pb-uk', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にツムを消すよ！' },
-  france: { id: 'france', name: 'フランス', css: 'pb-france', skill: 'clearVertical', skillReq: 15, desc: '縦ライン状にツムを消すよ！' },
+  poland: { id: 'poland', name: 'ポーランド', css: 'pb-poland', skill: 'clearCenter', skillReq: 14, desc: '画面中央のボールを消すよ！' },
+  germany: { id: 'germany', name: 'ドイツ', css: 'pb-germany', skill: 'clearRandom', skillReq: 15, desc: 'ランダムなボールを消すよ！' },
+  uk: { id: 'uk', name: 'イギリス', css: 'pb-uk', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にボールを消すよ！' },
+  france: { id: 'france', name: 'フランス', css: 'pb-france', skill: 'clearVertical', skillReq: 15, desc: '縦ライン状にボールを消すよ！' },
   italy: { id: 'italy', name: 'イタリア', css: 'pb-italy', skill: 'addTime', skillReq: 16, desc: '残り時間を少し増やすよ！' },
-  russia: { id: 'russia', name: 'ロシア', css: 'pb-russia', skill: 'clearLarge', skillReq: 18, desc: '画面中央のツムを広範囲で消すよ！' },
-  ukraine: { id: 'ukraine', name: 'ウクライナ', css: 'pb-ukraine', skill: 'spawnBomb', skillReq: 14, desc: 'マジカルボムを発生させるよ！' },
-  austria: { id: 'austria', name: 'オーストリア', css: 'pb-austria', skill: 'clearRandom', skillReq: 14, desc: 'ランダムなツムを消すよ！' },
-  us: { id: 'us', name: 'アメリカ', css: 'pb-us', skill: 'clearCenter', skillReq: 16, desc: '画面中央のツムを消すよ！' },
-  canada: { id: 'canada', name: 'カナダ', css: 'pb-canada', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にツムを消すよ！' },
+  russia: { id: 'russia', name: 'ロシア', css: 'pb-russia', skill: 'clearLarge', skillReq: 18, desc: '画面中央のボールを広範囲で消すよ！' },
+  ukraine: { id: 'ukraine', name: 'ウクライナ', css: 'pb-ukraine', skill: 'spawnBomb', skillReq: 14, desc: 'マジカルボールを発生させるよ！' },
+  austria: { id: 'austria', name: 'オーストリア', css: 'pb-austria', skill: 'clearRandom', skillReq: 14, desc: 'ランダムなボールを消すよ！' },
+  us: { id: 'us', name: 'アメリカ', css: 'pb-us', skill: 'clearCenter', skillReq: 16, desc: '画面中央のボールを消すよ！' },
+  canada: { id: 'canada', name: 'カナダ', css: 'pb-canada', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にボールを消すよ！' },
   mexico: { id: 'mexico', name: 'メキシコ', css: 'pb-mexico', skill: 'spawnBomb', skillReq: 14, desc: 'ボムを発生させるよ！' },
   brazil: { id: 'brazil', name: 'ブラジル', css: 'pb-brazil', skill: 'addTime', skillReq: 15, desc: '時間を増やすよ！' },
-  japan: { id: 'japan', name: '日本', css: 'pb-japan', skill: 'clearCenter', skillReq: 13, desc: '中央のツムを素早く消すよ！' },
-  china: { id: 'china', name: '中国', css: 'pb-china', skill: 'clearLarge', skillReq: 17, desc: '広範囲のツムを消すよ！' },
+  japan: { id: 'japan', name: '日本', css: 'pb-japan', skill: 'clearCenter', skillReq: 13, desc: '中央のボールを素早く消すよ！' },
+  china: { id: 'china', name: '中国', css: 'pb-china', skill: 'clearLarge', skillReq: 17, desc: '広範囲のボールを消すよ！' },
   korea: { id: 'korea', name: '韓国', css: 'pb-korea', skill: 'clearVertical', skillReq: 14, desc: '縦ライン状に消すよ！' },
-  nkorea: { id: 'nkorea', name: '北朝鮮', css: 'pb-nkorea', skill: 'spawnBomb', skillReq: 16, desc: 'ボムを発生させるよ！' },
+  nkorea: { id: 'nkorea', name: '北朝鮮', css: 'pb-nkorea', skill: 'spawnBomb', skillReq: 16, desc: 'マジカルボールを発生させるよ！' },
   taiwan: { id: 'taiwan', name: '台湾', css: 'pb-taiwan', skill: 'clearRandom', skillReq: 14, desc: 'ランダムに消すよ！' }
 };
 
@@ -702,7 +702,7 @@ class GameEngine {
       t.dom.style.transform = `translate(${t.body.position.x - t.dom.offsetWidth/2}px, ${t.body.position.y - t.dom.offsetHeight/2}px) rotate(${t.body.angle}rad)`;
     }
 
-    // ツム補充
+    // ボール補充
     // ※修正: 補充上限を増やして画面上部まで溜まるようにする
     if (activeCount < 80 && Math.random() < 0.3) {
       // レア判定
@@ -1165,7 +1165,7 @@ class App {
     
     this.updatePlayUI();
     
-    // サブツム選出 (自分が持っていないキャラも出る仕様)
+    // サブボール選出 (自分が持っていないキャラも出る仕様)
     let pool = Object.keys(this.charsMaster).filter(id => id !== myId);
     pool = pool.sort(() => 0.5 - Math.random()).slice(0, 4);
     pool.push(myId);
@@ -1253,7 +1253,7 @@ class App {
 
   addScore(val) { this.score += val; this.updatePlayUI(); }
   
-  // 4チェーン以上でコイン発生 (ツムツム仕様)
+  // 4チェーン以上でコイン発生 (人気仕様)
   addCoinFromChain(chainCount) {
     if (chainCount < 4) return;
     let coins = 0;
@@ -1345,7 +1345,7 @@ class App {
     // 消去スキルだった場合、スコアとコインを加算
     if (res.count > 0) {
       this.addScore(res.count * 100);
-      // スキルによる消去は1つのチェーンとみなす（ツムツム準拠）
+      // スキルによる消去は1つのチェーンとみなす（人気ルール準拠）
       this.addCoinFromChain(res.count);
       // スキルループ防止のため、スキル消去でのゲージ増加は少し減衰
       this.skillGauge += res.my * 0.5; 
