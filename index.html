@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Polandball puzzle</title>
+    	<link rel="manifest" href="manifest.json">
+<script>
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', () => {
+	navigator.serviceWorker.register('sw.js').then(registration => {
+	console.log('ServiceWorker registration successful with scope: ', registration.scope);
+	}, err => {
+	console.log('ServiceWorker registration failed: ', err);
+	}).catch(err => {
+	console.log(err)
+	});
+	});
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Serif+JP:wght@400;700&display=swap');
+
+  :root {
+    --bg-color: #f4e4bc; /* 羊皮紙風 */
+    --ui-dark: #3e2723;
+    --ui-gold: #c6a700;
+    --ui-gold-light: #fdd835;
+    --font-main: 'Noto Serif JP', serif;
+    --font-title: 'Cinzel', serif;
+  }
+
+  * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+  body {
+    margin: 0; padding: 0;
+    background-color: #2c1a12;
+    font-family: var(--font-main);
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh; height: 100dvh;
+    overflow: hidden;
+  }
+
+  #app {
+    width: 100%; max-width: 450px; height: 100%;
+    background: var(--bg-color);
+    background-image: radial-gradient(circle, transparent 20%, #e0c99a 120%);
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+
+  /* 画面切り替え用の共通クラス */
+.screen {
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  display: flex; 
+  flex-direction: column;
+  transition: opacity 0.3s;
+  opacity: 0; 
+  pointer-events: none; 
+  z-index: 10;
+  visibility: hidden; /* 追加: 完全に隠す */
+}
+.screen.active { 
+  opacity: 1; 
+  pointer-events: auto; 
+  visibility: visible; /* 追加 */
+}
+
+  /* UI パーツ */
+  h1, h2, h3 { margin: 0; color: var(--ui-dark); text-shadow: 1px 1px 0 #fff; text-align: center; }
+  .title-text { font-family: var(--font-title); font-size: 2.5rem; margin-top: 20%; color: #8b0000; text-shadow: 2px 2px 0 var(--ui-gold); }
+  
+  .btn {
+    background: linear-gradient(to bottom, #8d6e63, #4e342e);
+    color: white; border: 2px solid var(--ui-gold); border-radius: 12px;
+    padding: 12px 24px; font-size: 1.2rem; font-family: inherit; font-weight: bold;
+    cursor: pointer; text-shadow: 1px 1px 2px black;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2);
+    transition: transform 0.1s; margin: 10px;
+    display: inline-flex; justify-content: center; align-items: center;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .btn:disabled { filter: grayscale(1); opacity: 0.7; pointer-events: none; }
+  
+  .btn-gold { background: linear-gradient(to bottom, #fbc02d, #f57f17); color: #3e2723; border-color: #fff; text-shadow: none; }
+  .btn-blue { background: linear-gradient(to bottom, #42a5f5, #1565c0); }
+  .btn-red { background: linear-gradient(to bottom, #ef5350, #c62828); }
+
+  .top-bar {
+    display: flex; justify-content: space-between; padding: 10px 15px;
+    background: rgba(62, 39, 35, 0.9); color: white;
+    border-bottom: 3px solid var(--ui-gold); z-index: 20;
+  }
+  .top-bar div { display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 1.1rem; }
+  .coin-icon { color: var(--ui-gold-light); font-size: 1.2rem; }
+
+  /* Title Screen */
+  #title-screen { justify-content: center; align-items: center; background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="%238b4513" opacity="0.3"/></svg>'); }
+  
+  /* Home Screen */
+  #home-screen .menu-grid {
+    display: flex; flex-direction: column; gap: 15px; margin: auto; width: 80%;
+  }
+  .my-tsum-display {
+    margin: 20px auto; width: 120px; height: 120px;
+    background: rgba(255,255,255,0.3); border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    border: 4px dashed var(--ui-gold);
+  }
+
+  /* プレイ画面 */
+  #play-screen { background: #5d4037; }
+  #play-header {
+    height: 60px; background: #3e2723; display: flex; justify-content: space-around; align-items: center;
+    color: white; font-weight: bold; font-size: 1.2rem; border-bottom: 4px solid var(--ui-gold);
+  }
+  #game-area {
+    flex: 1; position: relative; overflow: hidden; background: radial-gradient(circle, #795548, #3e2723);
+  }
+  #chain-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+  
+  #play-footer {
+    height: 80px; background: #3e2723; border-top: 4px solid var(--ui-gold);
+    display: flex; justify-content: space-between; align-items: center; padding: 0 15px;
+  }
+  .skill-btn {
+    width: 60px; height: 60px; border-radius: 50%; background: #555;
+    border: 3px solid #ccc; position: relative; overflow: hidden;
+    display: flex; justify-content: center; align-items: center; cursor: pointer;
+  }
+  .skill-btn.ready { border-color: var(--ui-gold-light); box-shadow: 0 0 15px var(--ui-gold-light); animation: pulse 1s infinite; }
+  .skill-btn .gauge { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(253,216,53,0.7); height: 0%; transition: height 0.2s; pointer-events: none; }
+  .skill-btn .icon { position: relative; z-index: 2; width: 40px; height: 40px; background-size: cover; border-radius: 50%; pointer-events: none; }
+  
+  .shuffle-btn {
+    width: 60px; height: 60px; border-radius: 15px; background: var(--ui-gold);
+    border: 3px solid #fff; color: #3e2723; font-weight: bold; font-size: 1rem;
+    display: flex; justify-content: center; align-items: center; cursor: pointer;
+  }
+
+  /* ボールCSS (指定されたもの+サイズ調整) */
+  .country-ball {
+    width: 70px; height: 63px; /* 画面に多く溜まるようにサイズを調整 */
+    border: 3px solid #000;
+    border-radius: 52% 48% 45% 55% / 55% 55% 45% 45%;
+    position: absolute; /* Matter.js で座標制御するため */
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset -5px -5px 0 rgba(0,0,0,0.2);
+    /* transform: transform 0.1s は Matter.js の更新と競合するため除外するか、スケールのみ適用 */
+    will-change: transform;
+    z-index: 2;
+  }
+  /* なぞっている時の光 */
+  .country-ball.active {
+    filter: brightness(1.3);
+    border-color: #fff;
+    box-shadow: 0 0 10px #fff, inset -5px -5px 0 rgba(0,0,0,0.2);
+    z-index: 3;
+  }
+  /* アンシュルスボム（巨大化） */
+  .country-ball.anschluss { width: 120px; height: 108px; border-width: 5px; z-index: 1; }
+  
+  /* ボム */
+  .magic-bomb {
+    width: 60px; height: 60px; border-radius: 50%; position: absolute; z-index: 4;
+    background: radial-gradient(circle, #ffeb3b, #f57f17); border: 3px solid #fff;
+    display: flex; justify-content: center; align-items: center; font-weight: bold; color: #3e2723;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8); cursor: pointer;
+  }
+  .magic-bomb.time-bomb { background: radial-gradient(circle, #4fc3f7, #0277bd); }
+  .magic-bomb.score-bomb { background: radial-gradient(circle, #ef5350, #c62828); }
+
+  /* イスラエル (長方形、顔あり) */
+  .pb-israel {
+    width: 60px; height: 80px; border-radius: 5px; border: 3px solid #000; position: absolute; z-index: 4;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Israel.svg');
+    background-size: cover; background-position: center;
+    display: flex; justify-content: center; align-items: center; box-shadow: inset -5px -5px 0 rgba(0,0,0,0.2);
+  }
+
+  /* 目のパーツ */
+  .eyes-container { display: flex; gap: 8px; margin-top: -6px; pointer-events: none; }
+  .pb-eye { width: 14px; height: 18px; background: #fff; border: 2px solid #000; border-radius: 50%; }
+  .pb-eye.happy { height: 10px; border-radius: 15px 15px 0 0; margin-top: 6px; }
+  .pb-eye.angry { transform: rotate(15deg); border-radius: 0 0 50% 50%; }
+
+  /* 特殊：ポーランド（上下逆転） */
+  .pb-poland { background: linear-gradient(to bottom, #dc143c 50%, #ffffff 50%); }
+
+  /* 国旗プリセット */
+  .pb-japan { background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/9e/Flag_of_Japan.svg'); }
+  .pb-germany { background-image: url('https://upload.wikimedia.org/wikipedia/en/b/ba/Flag_of_Germany.svg'); }
+  .pb-uk { background-image: url('https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg'); }
+  .pb-france { background-image: url('https://upload.wikimedia.org/wikipedia/en/c/c3/Flag_of_France.svg'); }
+  .pb-italy { background-image: url('https://upload.wikimedia.org/wikipedia/en/0/03/Flag_of_Italy.svg'); }
+  .pb-russia { background-image: url('https://upload.wikimedia.org/wikipedia/en/f/f3/Flag_of_Russia.svg'); }
+  .pb-ukraine { background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Ukraine.svg'); }
+  .pb-austria { background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/41/Flag_of_Austria.svg'); }
+  .pb-us { background-image: url('https://upload.wikimedia.org/wikipedia/en/a/a4/Flag_of_the_United_States.svg'); }
+  .pb-canada { background-image: url('https://upload.wikimedia.org/wikipedia/commons/c/cf/Flag_of_Canada.svg'); }
+  .pb-mexico { background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/fc/Flag_of_Mexico.svg'); }
+  .pb-brazil { background-image: url('https://upload.wikimedia.org/wikipedia/en/0/05/Flag_of_Brazil.svg'); }
+  .pb-china { background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg'); }
+  .pb-korea { background-image: url('https://upload.wikimedia.org/wikipedia/commons/0/09/Flag_of_South_Korea.svg'); }
+  .pb-nkorea { background-image: url('https://upload.wikimedia.org/wikipedia/commons/5/51/Flag_of_North_Korea.svg'); }
+  .pb-taiwan { background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/72/Flag_of_the_Republic_of_China.svg'); }
+
+  /* カスタムモーダル */
+#modal-overlay {
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.6); 
+  z-index: 9999; /* 大幅にアップ */
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  opacity: 0; 
+  pointer-events: none; 
+  transition: opacity 0.2s;
+  visibility: hidden;
+}
+#modal-overlay.active { 
+  opacity: 1; 
+  pointer-events: auto; 
+  visibility: visible;
+}
+  .modal-box {
+    background: var(--bg-color); padding: 20px; border-radius: 15px; width: 85%;
+    border: 4px solid var(--ui-gold); text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    max-height: 80%; overflow-y: auto;
+  }
+  .modal-title { font-size: 1.5rem; margin-bottom: 15px; color: var(--ui-dark); border-bottom: 2px solid var(--ui-gold); padding-bottom: 5px; }
+
+  /* キャラクターリスト */
+  .char-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .char-item {
+    width: 80px; text-align: center; background: rgba(255,255,255,0.5); border-radius: 10px; padding: 5px; border: 2px solid transparent; cursor: pointer;
+  }
+  .char-item.selected { border-color: var(--ui-gold); background: rgba(253,216,53,0.3); }
+  .char-item .preview { width: 50px; height: 45px; margin: 0 auto; zoom: 0.7; pointer-events: none; }
+  .char-item .lvl { font-size: 0.8rem; font-weight: bold; color: var(--ui-dark); }
+  
+  /* ガチャUI */
+  .gacha-banner { background: #fff; border: 3px solid var(--ui-dark); border-radius: 10px; margin-bottom: 15px; overflow: hidden; position: relative; }
+  .gacha-banner img { width: 100%; display: block; }
+  .gacha-banner .title { position: absolute; bottom: 0; background: rgba(0,0,0,0.7); color: white; width: 100%; padding: 5px; font-size: 1rem; }
+  
+  /* スキルカットイン */
+#skill-cutin {
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.8); 
+  z-index: 50; 
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  opacity: 0; 
+  pointer-events: none; 
+  transition: opacity 0.2s; 
+  flex-direction: column;
+  visibility: hidden; /* 追加: 透明なときに入力を遮らない */
+}
+  #skill-cutin .skill-name { color: var(--ui-gold-light); font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px #fff; margin-top: 20px; }
+  
+  /* 演出テキスト */
+  .float-text {
+    position: absolute; font-weight: bold; color: white; text-shadow: 1px 1px 2px #000;
+    pointer-events: none; z-index: 15; animation: floatUp 1s ease-out forwards;
+  }
+  @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(1.5); opacity: 0; } }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+  /* ガチャ演出 */
+  #gacha-animation {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 80;
+    display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  #gacha-animation.active { opacity: 1; pointer-events: auto; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- 共通ヘッダー -->
+  <div class="top-bar">
+    <div><span class="coin-icon">💰</span> <span id="ui-coins">40000</span></div>
+    <div>🎫 <span id="ui-oda">0</span></div>
+  </div>
+
+  <!-- タイトル画面 -->
+  <div id="title-screen" class="screen active">
+    <h1 class="title-text">PolandBall<br>Puzzle</h1>
+    <div style="margin-top: 40px; display: flex; flex-direction: column; align-items: center;">
+      <button class="btn btn-gold" style="width: 200px; font-size: 1.5rem;" onclick="app.showScreen('home-screen')">TAP TO START</button>
+      <div style="margin-top: 20px;">
+        <button class="btn" onclick="app.dataManager.exportData()">保存(TXT)</button>
+        <button class="btn" onclick="document.getElementById('import-file').click()">読込(TXT)</button>
+        <input type="file" id="import-file" style="display:none" accept=".txt" onchange="app.dataManager.importData(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ホーム画面 -->
+  <div id="home-screen" class="screen">
+    <h2 style="margin-top: 20px;">HOME</h2>
+    <div class="my-tsum-display" id="home-my-tsum" onclick="app.showScreen('char-screen')">
+      <!-- 選択中のツムがここに表示される -->
+    </div>
+    <div style="text-align: center; margin-bottom: 20px; font-weight: bold;" id="home-my-tsum-name">マイツム</div>
+    
+    <div class="menu-grid">
+      <button class="btn btn-red" style="font-size: 1.5rem; padding: 15px;" onclick="app.startGame()">PLAY</button>
+      <button class="btn btn-blue" onclick="app.showScreen('gacha-screen')">ガチャ</button>
+      <button class="btn" onclick="app.showScreen('char-screen')">ツム一覧・育成</button>
+      <button class="btn" onclick="app.showScreen('title-screen')">タイトルへ</button>
+    </div>
+  </div>
+
+  <!-- ガチャ画面 -->
+  <div id="gacha-screen" class="screen">
+    <h2 style="margin-top: 20px;">GACHA</h2>
+    <div style="overflow-y: auto; padding: 15px; height: calc(100% - 100px);">
+      <!-- ハッピーガチャ -->
+      <div class="gacha-banner" style="background: #fff8e1;">
+        <div style="padding: 20px; text-align: center; font-weight: bold; font-size: 1.2rem; color: #ff6f00;">ハッピーガチャ</div>
+        <div style="text-align: center; padding-bottom: 10px;">通常キャラ(一部)が出現！</div>
+        <button class="btn btn-gold" style="width: 80%; margin: 10px auto; display: block;" onclick="app.drawGacha('happy')">💰 20,000 引く</button>
+      </div>
+      <!-- イベントガチャ (動的生成) -->
+      <div id="event-gacha-container"></div>
+    </div>
+    <div style="text-align: center; padding: 10px;">
+      <button class="btn" onclick="app.showScreen('home-screen')">戻る</button>
+    </div>
+  </div>
+
+  <!-- キャラ一覧・育成画面 -->
+  <div id="char-screen" class="screen">
+    <h2 style="margin-top: 20px;">MY TSUM</h2>
+    <div id="char-list-container" class="char-list" style="overflow-y: auto; padding: 10px; height: calc(100% - 150px);">
+      <!-- JSで生成 -->
+    </div>
+    <div style="text-align: center; padding: 10px; background: rgba(0,0,0,0.1);">
+      <button class="btn" onclick="app.showScreen('home-screen')">戻る</button>
+    </div>
+  </div>
+
+  <!-- プレイ画面 -->
+  <div id="play-screen" class="screen">
+    <div id="play-header">
+      <div>SCORE: <span id="play-score">0</span></div>
+      <div>⏳ <span id="play-time">60</span></div>
+      <div>💰 <span id="play-coins">0</span></div>
+      <button style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;" onclick="app.pauseGame()">⏸</button>
+    </div>
+    <div id="game-area">
+      <svg id="chain-canvas"></svg>
+      <!-- Matter.jsのDOM要素がここに入る -->
+    </div>
+    <div id="play-footer">
+      <div class="skill-btn" id="skill-btn" onclick="app.useSkill()">
+        <div class="gauge" id="skill-gauge"></div>
+        <div class="icon" id="skill-icon"></div>
+      </div>
+      <div style="color:white; font-size:0.9rem; text-align:center;">なぞって消そう！<br>4つ以上でコイン</div>
+      <button class="shuffle-btn" onclick="app.shuffleBoard()">ブル<br>ブル</button>
+    </div>
+  </div>
+
+  <!-- モーダル汎用 -->
+  <div id="modal-overlay">
+    <div class="modal-box" id="modal-content"></div>
+  </div>
+
+  <!-- スキルカットイン -->
+  <div id="skill-cutin">
+    <div id="skill-cutin-char" style="transform: scale(2);"></div>
+    <div class="skill-name" id="skill-cutin-name">Skill Name</div>
+  </div>
+
+  <!-- ガチャ演出 -->
+  <div id="gacha-animation">
+    <div style="text-align: center;">
+      <div id="gacha-result-char" style="transform: scale(1.5); margin: 50px auto;"></div>
+      <h2 id="gacha-result-name" style="margin-top: 20px;"></h2>
+      <p id="gacha-result-desc" style="font-weight: bold; color: #d32f2f;"></p>
+      <button class="btn btn-gold" onclick="document.getElementById('gacha-animation').classList.remove('active')">OK</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/**
+ * 効果音エンジン (Web Audio API)
+ */
+class AudioEngine {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  playTone(freq, type, duration, vol = 0.1) {
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + duration);
+  }
+  playTap() { this.playTone(600, 'sine', 0.1, 0.05); }
+  playChain(count) { this.playTone(400 + count * 50, 'sine', 0.1, 0.1); }
+  playClear() { this.playTone(800, 'square', 0.15, 0.05); }
+  playBomb() { this.playTone(100, 'sawtooth', 0.4, 0.2); }
+  playSkill() { this.playTone(1200, 'triangle', 0.5, 0.1); setTimeout(()=>this.playTone(1600, 'triangle', 0.5, 0.1), 100); }
+  playGacha() { this.playTone(500, 'square', 0.2, 0.1); setTimeout(()=>this.playTone(800, 'square', 0.4, 0.1), 200); }
+}
+
+/**
+ * キャラクターマスターデータ
+ */
+const BASE_CHARS = {
+  poland: { id: 'poland', name: 'ポーランド', css: 'pb-poland', skill: 'clearCenter', skillReq: 14, desc: '画面中央のツムを消すよ！' },
+  germany: { id: 'germany', name: 'ドイツ', css: 'pb-germany', skill: 'clearRandom', skillReq: 15, desc: 'ランダムなツムを消すよ！' },
+  uk: { id: 'uk', name: 'イギリス', css: 'pb-uk', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にツムを消すよ！' },
+  france: { id: 'france', name: 'フランス', css: 'pb-france', skill: 'clearVertical', skillReq: 15, desc: '縦ライン状にツムを消すよ！' },
+  italy: { id: 'italy', name: 'イタリア', css: 'pb-italy', skill: 'addTime', skillReq: 16, desc: '残り時間を少し増やすよ！' },
+  russia: { id: 'russia', name: 'ロシア', css: 'pb-russia', skill: 'clearLarge', skillReq: 18, desc: '画面中央のツムを広範囲で消すよ！' },
+  ukraine: { id: 'ukraine', name: 'ウクライナ', css: 'pb-ukraine', skill: 'spawnBomb', skillReq: 14, desc: 'マジカルボムを発生させるよ！' },
+  austria: { id: 'austria', name: 'オーストリア', css: 'pb-austria', skill: 'clearRandom', skillReq: 14, desc: 'ランダムなツムを消すよ！' },
+  us: { id: 'us', name: 'アメリカ', css: 'pb-us', skill: 'clearCenter', skillReq: 16, desc: '画面中央のツムを消すよ！' },
+  canada: { id: 'canada', name: 'カナダ', css: 'pb-canada', skill: 'clearHorizontal', skillReq: 15, desc: '横ライン状にツムを消すよ！' },
+  mexico: { id: 'mexico', name: 'メキシコ', css: 'pb-mexico', skill: 'spawnBomb', skillReq: 14, desc: 'ボムを発生させるよ！' },
+  brazil: { id: 'brazil', name: 'ブラジル', css: 'pb-brazil', skill: 'addTime', skillReq: 15, desc: '時間を増やすよ！' },
+  japan: { id: 'japan', name: '日本', css: 'pb-japan', skill: 'clearCenter', skillReq: 13, desc: '中央のツムを素早く消すよ！' },
+  china: { id: 'china', name: '中国', css: 'pb-china', skill: 'clearLarge', skillReq: 17, desc: '広範囲のツムを消すよ！' },
+  korea: { id: 'korea', name: '韓国', css: 'pb-korea', skill: 'clearVertical', skillReq: 14, desc: '縦ライン状に消すよ！' },
+  nkorea: { id: 'nkorea', name: '北朝鮮', css: 'pb-nkorea', skill: 'spawnBomb', skillReq: 16, desc: 'ボムを発生させるよ！' },
+  taiwan: { id: 'taiwan', name: '台湾', css: 'pb-taiwan', skill: 'clearRandom', skillReq: 14, desc: 'ランダムに消すよ！' }
+};
+
+const HAPPY_GACHA_POOL = ['poland', 'japan', 'korea', 'taiwan', 'austria'];
+
+/**
+ * データ管理 (IndexedDB / LocalStorage Fallback)
+ */
+class DataManager {
+  constructor(app) {
+    this.app = app;
+    this.saveData = {
+      coins: 40000, odaTickets: 0, currentTsum: 'poland',
+      chars: { poland: { level: 1, skillLevel: 1, cap: 30 } }
+    };
+  }
+  
+  init() {
+    return new Promise((resolve) => {
+      const saved = localStorage.getItem('pb_save');
+      if (saved) {
+        try { Object.assign(this.saveData, JSON.parse(saved)); } catch(e){}
+      }
+      resolve();
+    });
+  }
+
+  save() { localStorage.setItem('pb_save', JSON.stringify(this.saveData)); this.app.updateUI(); }
+
+  addCoin(amount) { this.saveData.coins += amount; this.save(); }
+  consumeCoin(amount) {
+    if (this.saveData.coins >= amount) { this.saveData.coins -= amount; this.save(); return true; }
+    return false;
+  }
+  
+  addOdaTicket(amount) { this.saveData.odaTickets += amount; this.save(); }
+  
+  gainChar(charId) {
+    if (this.saveData.chars[charId]) {
+      // 被り
+      this.addOdaTicket(1);
+      return { isNew: false, msg: '既に持っているキャラです。ODAチケットを獲得！' };
+    } else {
+      this.saveData.chars[charId] = { level: 1, skillLevel: 1, cap: 30 };
+      this.save();
+      return { isNew: true, msg: '新しいキャラをゲット！' };
+    }
+  }
+
+  exportData() {
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(btoa(JSON.stringify(this.saveData)));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", "polandball_save.txt");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const decoded = atob(e.target.result);
+        const parsed = JSON.parse(decoded);
+        if (parsed.coins !== undefined) {
+          this.saveData = parsed; this.save();
+          alert('セーブデータを読み込みました！');
+          this.app.showScreen('title-screen');
+        }
+      } catch(err) { alert('不正なファイルです。'); }
+    };
+    reader.readAsText(file);
+  }
+}
+
+/**
+ * ゲームエンジン (Matter.js と DOMの連携)
+ */
+class GameEngine {
+  constructor(containerId, app) {
+    this.app = app;
+    this.container = document.getElementById(containerId);
+    this.width = this.container.clientWidth;
+    this.height = this.container.clientHeight;
+    
+    // Matter.js setup
+    // ※修正: enableSleepingをfalseにして、ボールが途中で空中で固定されないようにする
+    this.engine = Matter.Engine.create({ enableSleeping: false });
+    this.world = this.engine.world;
+    this.world.gravity.y = 1.2; // 少し重めにしてしっかり落ちるように
+    
+    this.tsums = [];
+    this.runner = null;
+    this.isPlaying = false;
+    
+    // 壁作成 (見えない壁)
+    const wallOptions = { isStatic: true, friction: 0.1, restitution: 0.2 };
+    Matter.World.add(this.world, [
+      Matter.Bodies.rectangle(this.width/2, this.height + 25, this.width, 50, wallOptions), // 床
+      Matter.Bodies.rectangle(-25, this.height/2, 50, this.height*2, wallOptions), // 左壁
+      Matter.Bodies.rectangle(this.width + 25, this.height/2, 50, this.height*2, wallOptions) // 右壁
+    ]);
+
+    // 入力関連
+    this.isDragging = false;
+    this.chain = [];
+    
+    this.setupEvents();
+  }
+
+  start(charPool) {
+    this.container.innerHTML = '<svg id="chain-canvas"></svg>'; // DOMリセット
+    this.svg = document.getElementById('chain-canvas');
+    this.tsums = [];
+    this.charPool = charPool; // 登場する5種類のキャラID配列
+    Matter.World.clear(this.world, true); // 壁は残す
+    
+    this.isPlaying = true;
+    this.runner = Matter.Runner.create();
+    Matter.Runner.run(this.runner, this.engine);
+    
+    this.loop = requestAnimationFrame(this.update.bind(this));
+    
+    // 初期ツム生成
+    // ※修正: 上までしっかり溜まるように生成数を増やす (45 -> 80)
+    for(let i=0; i<80; i++) {
+      setTimeout(() => this.spawnTsum(), i * 30);
+    }
+  }
+
+  stop() {
+    this.isPlaying = false;
+    if (this.runner) Matter.Runner.stop(this.runner);
+    cancelAnimationFrame(this.loop);
+  }
+
+  spawnTsum(isAnschluss = false, isIsrael = false) {
+    if (!this.isPlaying) return;
+    const typeId = isIsrael ? 'israel' : this.charPool[Math.floor(Math.random() * this.charPool.length)];
+    const radius = isAnschluss ? 50 : 28; // ボール半径
+    
+    const x = Math.random() * (this.width - radius*2) + radius;
+    const y = -radius - Math.random() * 50; // 画面上部から
+
+    let body, dom;
+    
+    if (isIsrael) {
+      body = Matter.Bodies.rectangle(x, y, 50, 70, { friction: 0.5, restitution: 0.1 });
+      dom = document.createElement('div');
+      dom.className = 'pb-israel';
+    } else {
+      body = Matter.Bodies.circle(x, y, radius, { friction: 0.4, restitution: 0.1 });
+      dom = document.createElement('div');
+      const charData = this.app.getCharData(typeId);
+      dom.className = `country-ball ${charData.css}`;
+      if (isAnschluss) dom.classList.add('anschluss');
+      // 目を追加
+      dom.innerHTML = `<div class="eyes-container"><div class="pb-eye"></div><div class="pb-eye"></div></div>`;
+      
+      // カスタム国旗 (CSSにない場合)
+      if (charData.flagUrl && !charData.css.startsWith('pb-')) {
+        dom.style.backgroundImage = `url('${charData.flagUrl}')`;
+      }
+    }
+
+    dom.dataset.id = body.id;
+    dom.dataset.type = typeId;
+    dom.dataset.anschluss = isAnschluss ? "1" : "0";
+    dom.dataset.israel = isIsrael ? "1" : "0";
+    
+    this.container.appendChild(dom);
+    Matter.World.add(this.world, body);
+    
+    this.tsums.push({ body, dom, type: typeId });
+  }
+
+  spawnBomb(x, y, type = 'normal') {
+    const radius = 30;
+    const body = Matter.Bodies.circle(x, y, radius, { friction: 0.5, restitution: 0.1 });
+    const dom = document.createElement('div');
+    dom.className = `magic-bomb ${type === 'time' ? 'time-bomb' : type === 'score' ? 'score-bomb' : ''}`;
+    dom.innerText = type === 'time' ? 'T' : type === 'score' ? 'S' : 'B';
+    dom.dataset.id = body.id;
+    dom.dataset.isBomb = "1";
+    dom.dataset.bombType = type;
+    
+    // ボムタップイベント
+    dom.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      this.explodeBomb(body.id, x, y, type);
+    });
+
+    this.container.appendChild(dom);
+    Matter.World.add(this.world, body);
+    this.tsums.push({ body, dom, type: 'bomb' });
+  }
+
+  explodeBomb(id, x, y, type) {
+    if (!this.isPlaying) return;
+    this.app.audio.playBomb();
+    
+    // 対象のボムを削除
+    this.removeTsumById(id);
+    
+    // 周囲を巻き込む
+    const blastRadius = 120;
+    let erasedCount = 0;
+    let containsMyTsum = 0;
+
+    this.tsums.forEach(t => {
+      if (t.type === 'bomb') return;
+      const dx = t.body.position.x - x;
+      const dy = t.body.position.y - y;
+      if (dx*dx + dy*dy < blastRadius*blastRadius) {
+        if (t.type === this.app.data.saveData.currentTsum) containsMyTsum++;
+        this.removeTsumById(t.body.id);
+        erasedCount++;
+      }
+    });
+
+    this.app.addScore(erasedCount * 100);
+    this.app.addCoinFromChain(erasedCount); // ボム消去もコイン対象
+    this.app.addSkillGauge(containsMyTsum);
+    
+    if (type === 'time') this.app.addTime(2);
+  }
+
+  update() {
+    if (!this.isPlaying) return;
+
+    // DOM位置同期
+    let activeCount = 0;
+    for (let i = this.tsums.length - 1; i >= 0; i--) {
+      const t = this.tsums[i];
+      // 画面外に落ちたら削除
+      if (t.body.position.y > this.height + 100) {
+        this.removeTsumById(t.body.id);
+        continue;
+      }
+      activeCount++;
+      t.dom.style.transform = `translate(${t.body.position.x - t.dom.offsetWidth/2}px, ${t.body.position.y - t.dom.offsetHeight/2}px) rotate(${t.body.angle}rad)`;
+    }
+
+    // ツム補充
+    // ※修正: 補充上限を増やして画面上部まで溜まるようにする
+    if (activeCount < 80 && Math.random() < 0.3) {
+      // レア判定
+      const r = Math.random();
+      if (r < 0.005) this.spawnTsum(false, true); // イスラエル
+      else if (r < 0.02) this.spawnTsum(true, false); // アンシュルス
+      else this.spawnTsum();
+    }
+
+    this.drawChain();
+    this.loop = requestAnimationFrame(this.update.bind(this));
+  }
+
+  removeTsumById(id) {
+    const idx = this.tsums.findIndex(t => t.body.id === id);
+    if (idx !== -1) {
+      const t = this.tsums[idx];
+      Matter.World.remove(this.world, t.body);
+      if(t.dom.parentNode) t.dom.parentNode.removeChild(t.dom);
+      this.tsums.splice(idx, 1);
+    }
+  }
+
+  // --- 入力とチェーン判定 ---
+  setupEvents() {
+    this.container.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.container.addEventListener('pointermove', this.onPointerMove.bind(this));
+    window.addEventListener('pointerup', this.onPointerUp.bind(this));
+  }
+
+  getTsumAtPoint(x, y) {
+    const hitBodies = Matter.Query.point(this.tsums.map(t=>t.body), {x, y});
+    if (hitBodies.length > 0) {
+      return this.tsums.find(t => t.body.id === hitBodies[0].id);
+    }
+    return null;
+  }
+
+  onPointerDown(e) {
+    if (!this.isPlaying) return;
+    const rect = this.container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const tsum = this.getTsumAtPoint(x, y);
+    if (tsum && tsum.type !== 'bomb') {
+      if (tsum.dom.dataset.israel === "1") {
+        this.activateIsrael();
+        return;
+      }
+      this.isDragging = true;
+      this.chain = [tsum];
+      tsum.dom.classList.add('active');
+      this.app.audio.playTap();
+    }
+  }
+
+  onPointerMove(e) {
+    if (!this.isDragging || !this.isPlaying) return;
+    const rect = this.container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tsum = this.getTsumAtPoint(x, y);
+    if (tsum && tsum.type === this.chain[0].type && !this.chain.includes(tsum)) {
+      const last = this.chain[this.chain.length - 1];
+      const dist = Math.hypot(tsum.body.position.x - last.body.position.x, tsum.body.position.y - last.body.position.y);
+      // つながる距離判定（シビアすぎない）
+      if (dist < 85) {
+        this.chain.push(tsum);
+        tsum.dom.classList.add('active');
+        this.app.audio.playChain(this.chain.length);
+      }
+    }
+  }
+
+  onPointerUp(e) {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    
+    // なぞり終了、判定
+    if (this.chain.length >= 3) {
+      this.app.audio.playClear();
+      let eraseCount = 0;
+      let myTsumCount = 0;
+      let lastPos = {x:0, y:0};
+
+      this.chain.forEach(t => {
+        const isAnsch = t.dom.dataset.anschluss === "1";
+        const val = isAnsch ? 2 : 1;
+        eraseCount += val;
+        if (t.type === this.app.data.saveData.currentTsum) myTsumCount += val;
+        lastPos = {x: t.body.position.x, y: t.body.position.y};
+        
+        // エフェクト
+        this.app.createFloatText(t.body.position.x, t.body.position.y, '+');
+        this.removeTsumById(t.body.id);
+      });
+
+      this.app.addScore(eraseCount * 50 + (this.chain.length * 10));
+      this.app.addCoinFromChain(eraseCount); // チェーン数基準でコイン
+      this.app.addSkillGauge(myTsumCount);
+
+      // ボム発生 (7以上)
+      if (eraseCount >= 7) {
+        const type = eraseCount >= 10 && Math.random() < 0.3 ? 'time' : 'normal';
+        this.spawnBomb(lastPos.x, lastPos.y, type);
+      }
+    } else {
+      // 失敗時は光を戻す
+      this.chain.forEach(t => t.dom.classList.remove('active'));
+    }
+    
+    this.chain = [];
+    this.drawChain(); // 線を消す
+  }
+
+  drawChain() {
+    if (!this.svg) return;
+    if (this.chain.length < 2) {
+      this.svg.innerHTML = '';
+      return;
+    }
+    let points = this.chain.map(t => `${t.body.position.x},${t.body.position.y}`).join(' ');
+    this.svg.innerHTML = `<polyline points="${points}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  activateIsrael() {
+    // 全消去＆全コイン
+    this.app.audio.playBomb();
+    let count = 0;
+    this.tsums.forEach(t => {
+      this.app.createFloatText(t.body.position.x, t.body.position.y, '💰');
+      this.removeTsumById(t.body.id);
+      count++;
+    });
+    this.app.addScore(count * 200);
+    this.app.addCoinFromChain(count * 2); // 大量コイン
+  }
+
+  shuffle() {
+    this.app.audio.playTap();
+    this.tsums.forEach(t => {
+      const fx = (Math.random() - 0.5) * 0.05;
+      const fy = -Math.random() * 0.05 - 0.02;
+      Matter.Body.applyForce(t.body, t.body.position, {x: fx, y: fy});
+    });
+  }
+
+  // スキル用API群
+  clearCenter(radius) {
+    let count=0; let my=0;
+    this.tsums.forEach(t => {
+      const dx = t.body.position.x - this.width/2;
+      const dy = t.body.position.y - this.height/2;
+      if (dx*dx + dy*dy < radius*radius) {
+        if(t.type === this.app.data.saveData.currentTsum) my++;
+        this.removeTsumById(t.body.id); count++;
+      }
+    });
+    return {count, my};
+  }
+  clearHorizontal(y, height) {
+    let count=0; let my=0;
+    this.tsums.forEach(t => {
+      if (t.body.position.y > y - height/2 && t.body.position.y < y + height/2) {
+        if(t.type === this.app.data.saveData.currentTsum) my++;
+        this.removeTsumById(t.body.id); count++;
+      }
+    });
+    return {count, my};
+  }
+  clearVertical(x, width) {
+    let count=0; let my=0;
+    this.tsums.forEach(t => {
+      if (t.body.position.x > x - width/2 && t.body.position.x < x + width/2) {
+        if(t.type === this.app.data.saveData.currentTsum) my++;
+        this.removeTsumById(t.body.id); count++;
+      }
+    });
+    return {count, my};
+  }
+  clearRandom(num) {
+    let count=0; let my=0;
+    const shuffled = [...this.tsums].sort(() => 0.5 - Math.random());
+    for(let i=0; i<Math.min(num, shuffled.length); i++) {
+      if(shuffled[i].type === 'bomb') continue;
+      if(shuffled[i].type === this.app.data.saveData.currentTsum) my++;
+      this.removeTsumById(shuffled[i].body.id); count++;
+    }
+    return {count, my};
+  }
+}
+
+/**
+ * メインアプリケーションクラス
+ */
+class App {
+  constructor() {
+    this.audio = new AudioEngine();
+    this.data = new DataManager(this);
+    this.engine = new GameEngine('game-area', this);
+    
+    this.charsMaster = { ...BASE_CHARS };
+    this.eventData = null;
+
+    // ゲーム内ステータス
+    this.score = 0;
+    this.playCoins = 0;
+    this.timeLeft = 0;
+    this.timer = null;
+    this.skillGauge = 0;
+    this.skillReq = 15;
+    this.isSkillReady = false;
+
+    this.init();
+  }
+
+  async init() {
+    await this.data.init();
+    await this.fetchEventData();
+    this.updateUI();
+  }
+
+  async fetchEventData() {
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/PolandBallHub-Operator/polandballpuzzle/refs/heads/main/event.txt');
+      if (!res.ok) throw new Error('Network response was not ok');
+      const text = await res.text();
+      // 余計な括弧を外してJSONパース
+      const jsonStr = text.replace(/^\s*\(\s*/, '').replace(/\s*\)\s*$/, '');
+      const data = JSON.parse(jsonStr);
+      
+      this.eventData = data;
+      
+      // 新キャラをマスターにマージ
+      if (data.newChars) {
+        for (const [key, charInfo] of Object.entries(data.newChars)) {
+          this.charsMaster[key] = {
+            id: key,
+            name: charInfo.name,
+            css: 'custom',
+            flagUrl: charInfo.flagUrl,
+            skill: charInfo.skill === 'custom' ? 'custom' : charInfo.skill,
+            customCode: charInfo.customCode,
+            skillReq: charInfo.skillReq || 15,
+            desc: charInfo.skillName
+          };
+        }
+      }
+      this.buildEventGachaUI();
+    } catch (err) {
+      console.log('Event fetch failed, using fallback.', err);
+      // イベント取得失敗時はイベントガチャを非表示に
+    }
+  }
+
+  getCharData(id) { return this.charsMaster[id] || BASE_CHARS['poland']; }
+
+  showScreen(id) {
+    this.audio.playTap();
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    
+    if (id === 'char-screen') this.buildCharList();
+    if (id === 'home-screen') this.updateHomeUI();
+  }
+
+  updateUI() {
+    document.getElementById('ui-coins').innerText = this.data.saveData.coins;
+    document.getElementById('ui-oda').innerText = this.data.saveData.odaTickets;
+    this.updateHomeUI();
+  }
+
+  updateHomeUI() {
+    const myId = this.data.saveData.currentTsum;
+    const char = this.getCharData(myId);
+    const disp = document.getElementById('home-my-tsum');
+    disp.innerHTML = this.createBallHTML(char);
+    document.getElementById('home-my-tsum-name').innerText = `マイツム: ${char.name} (Lv.${this.data.saveData.chars[myId].level})`;
+  }
+
+  createBallHTML(char) {
+    if (char.css !== 'custom') {
+      return `<div class="country-ball ${char.css}" style="transform:scale(0.8)"><div class="eyes-container"><div class="pb-eye happy"></div><div class="pb-eye happy"></div></div></div>`;
+    } else {
+      return `<div class="country-ball" style="background-image:url('${char.flagUrl}'); transform:scale(0.8)"><div class="eyes-container"><div class="pb-eye happy"></div><div class="pb-eye happy"></div></div></div>`;
+    }
+  }
+
+  showModal(title, contentHTML, buttonsHTML) {
+    this.audio.playTap();
+    const over = document.getElementById('modal-overlay');
+    const box = document.getElementById('modal-content');
+    box.innerHTML = `<div class="modal-title">${title}</div><div>${contentHTML}</div><div style="margin-top:20px;">${buttonsHTML}</div>`;
+    over.classList.add('active');
+  }
+  closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+
+  // --- キャラ育成画面 ---
+  buildCharList() {
+    const cont = document.getElementById('char-list-container');
+    cont.innerHTML = '';
+    
+    // 持っているキャラをソートして表示
+    const ownedIds = Object.keys(this.data.saveData.chars);
+    ownedIds.forEach(id => {
+      const char = this.getCharData(id);
+      const data = this.data.saveData.chars[id];
+      const div = document.createElement('div');
+      div.className = `char-item ${this.data.saveData.currentTsum === id ? 'selected' : ''}`;
+      div.innerHTML = `
+        <div class="preview">${this.createBallHTML(char)}</div>
+        <div class="lvl">Lv.${data.level}</div>
+      `;
+      div.onclick = () => this.showCharDetails(id);
+      cont.appendChild(div);
+    });
+  }
+
+  showCharDetails(id) {
+    const char = this.getCharData(id);
+    const data = this.data.saveData.chars[id];
+    let html = `
+      ${this.createBallHTML(char)}
+      <p style="font-weight:bold;">${char.name}</p>
+      <p>レベル: ${data.level} / ${data.cap}</p>
+      <p>スキルLv: ${data.skillLevel}</p>
+      <p style="font-size:0.9rem; color:#555;">${char.desc}</p>
+    `;
+    
+    let btns = `<button class="btn btn-blue" onclick="app.setMyTsum('${id}')">マイツムにする</button>`;
+    
+    // レベルアップ (コイン消費)
+    if (data.level < data.cap) {
+      const cost = data.level * 1000;
+      btns += `<button class="btn btn-gold" onclick="app.levelUp('${id}', ${cost})">LvUP (${cost}枚)</button>`;
+    } else if (data.cap < 60) {
+      btns += `<button class="btn btn-red" onclick="app.unlockCap('${id}')">上限解放 (20000枚)</button>`;
+    }
+    
+    // スキルアップ (ODAチケット消費)
+    if (data.skillLevel < 6) {
+      btns += `<button class="btn" onclick="app.skillUp('${id}')">スキルUP (ODA 1枚)</button>`;
+    }
+
+    btns += `<button class="btn" onclick="app.closeModal()">閉じる</button>`;
+    this.showModal('キャラクター情報', html, btns);
+  }
+
+  setMyTsum(id) {
+    this.data.saveData.currentTsum = id;
+    this.data.save();
+    this.closeModal();
+    this.buildCharList();
+    this.updateUI();
+  }
+
+  levelUp(id, cost) {
+    if (this.data.consumeCoin(cost)) {
+      this.data.saveData.chars[id].level++;
+      this.data.save();
+      this.audio.playSkill();
+      this.showCharDetails(id);
+    } else {
+      alert("コインが足りません！");
+    }
+  }
+
+  unlockCap(id) {
+    if (this.data.consumeCoin(20000)) {
+      this.data.saveData.chars[id].cap += 10;
+      this.data.save();
+      this.audio.playSkill();
+      this.showCharDetails(id);
+    } else {
+      alert("コインが足りません！");
+    }
+  }
+
+  skillUp(id) {
+    if (this.data.saveData.odaTickets >= 1) {
+      this.data.saveData.odaTickets--;
+      this.data.saveData.chars[id].skillLevel++;
+      this.data.save();
+      this.audio.playSkill();
+      this.updateUI();
+      this.showCharDetails(id);
+    } else {
+      alert("ODAチケットが足りません！ガチャ被り等で入手してください。");
+    }
+  }
+
+  // --- ガチャ ---
+  buildEventGachaUI() {
+    const cont = document.getElementById('event-gacha-container');
+    if (!this.eventData || !this.eventData.eventGacha) {
+      cont.innerHTML = ''; return;
+    }
+    const gacha = this.eventData.eventGacha;
+    cont.innerHTML = `
+      <div class="gacha-banner" style="background: #e3f2fd; margin-top:20px;">
+        ${gacha.thumbnail ? `<img src="${gacha.thumbnail}" alt="Event">` : ''}
+        <div style="padding: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; color: #1565c0;">${gacha.name}</div>
+        <button class="btn btn-blue" style="width: 80%; margin: 10px auto; display: block;" onclick="app.drawGacha('event')">💰 ${gacha.cost} 引く</button>
+      </div>
+    `;
+  }
+
+  drawGacha(type) {
+    let cost = 20000;
+    let pool = HAPPY_GACHA_POOL;
+    
+    if (type === 'event' && this.eventData && this.eventData.eventGacha) {
+      cost = this.eventData.eventGacha.cost;
+      pool = this.eventData.eventGacha.pool;
+    }
+
+    if (this.data.consumeCoin(cost)) {
+      this.audio.playGacha();
+      const resultId = pool[Math.floor(Math.random() * pool.length)];
+      const res = this.data.gainChar(resultId);
+      this.updateUI();
+      this.showGachaAnimation(resultId, res.msg);
+    } else {
+      this.showModal('エラー', 'コインが足りません！', '<button class="btn" onclick="app.closeModal()">閉じる</button>');
+    }
+  }
+
+  showGachaAnimation(charId, msg) {
+    const anim = document.getElementById('gacha-animation');
+    const char = this.getCharData(charId);
+    document.getElementById('gacha-result-char').innerHTML = this.createBallHTML(char);
+    document.getElementById('gacha-result-name').innerText = char.name + ' を獲得！';
+    document.getElementById('gacha-result-desc').innerText = msg;
+    anim.classList.add('active');
+  }
+
+  // --- ゲームプレイ ---
+  startGame() {
+    this.showScreen('play-screen');
+    this.score = 0;
+    this.playCoins = 0;
+    this.timeLeft = 60;
+    this.skillGauge = 0;
+    this.isSkillReady = false;
+    
+    const myId = this.data.saveData.currentTsum;
+    const myChar = this.getCharData(myId);
+    this.skillReq = myChar.skillReq - (this.data.saveData.chars[myId].skillLevel * 0.5); // スキルLvで発動しやすく
+
+    // アイコン設定
+    const iconEl = document.getElementById('skill-icon');
+    if (myChar.css !== 'custom') {
+      iconEl.className = `icon country-ball ${myChar.css}`;
+    } else {
+      iconEl.className = `icon country-ball`;
+      iconEl.style.backgroundImage = `url('${myChar.flagUrl}')`;
+    }
+    
+    this.updatePlayUI();
+    
+    // サブツム選出 (自分が持っていないキャラも出る仕様)
+    let pool = Object.keys(this.charsMaster).filter(id => id !== myId);
+    pool = pool.sort(() => 0.5 - Math.random()).slice(0, 4);
+    pool.push(myId);
+
+    this.engine.start(pool);
+    
+    this.timer = setInterval(() => {
+      this.timeLeft--;
+      this.updatePlayUI();
+      if (this.timeLeft <= 0) this.endGame();
+    }, 1000);
+  }
+
+  pauseGame() {
+    if (!this.engine.isPlaying) return; // 既にポーズ等
+    // ここでは簡易的なポーズモーダル
+    clearInterval(this.timer);
+    this.engine.stop();
+    this.showModal('PAUSE', 'ゲームを一時停止中', `
+      <button class="btn btn-blue" onclick="app.resumeGame()">再開</button>
+      <button class="btn btn-red" onclick="app.quitGame()">やめる</button>
+    `);
+  }
+
+  resumeGame() {
+    this.closeModal();
+    this.engine.isPlaying = true;
+    this.engine.runner = Matter.Runner.create();
+    Matter.Runner.run(this.engine.runner, this.engine.engine);
+    this.engine.loop = requestAnimationFrame(this.engine.update.bind(this.engine));
+    this.timer = setInterval(() => {
+      this.timeLeft--;
+      this.updatePlayUI();
+      if (this.timeLeft <= 0) this.endGame();
+    }, 1000);
+  }
+
+  quitGame() {
+    this.closeModal();
+    this.engine.stop();
+    clearInterval(this.timer);
+    this.showScreen('home-screen');
+  }
+
+  endGame() {
+    clearInterval(this.timer);
+    this.timer = null;
+    this.engine.stop();
+    this.audio.playClear();
+    
+    // ボーナスコイン(Lvボーナスなど)
+    const myId = this.data.saveData.currentTsum;
+    const lvBonus = Math.floor(this.data.saveData.chars[myId].level * 0.5); // %アップ
+    const finalCoins = Math.floor(this.playCoins * (1 + lvBonus/100));
+    
+    this.data.addCoin(finalCoins);
+    
+    // 修正箇所：ボタンの onclick に app.closeModal() を追加
+    this.showModal('TIME UP!', `
+      <p style="font-size:1.5rem;">SCORE: ${this.score}</p>
+      <p>獲得コイン: ${this.playCoins} + (Lvボーナス) = <span style="color:#f57f17; font-weight:bold;">${finalCoins}</span></p>
+    `, `<button class="btn btn-gold" onclick="app.closeModal(); app.showScreen('home-screen')">OK</button>`);
+  }
+
+
+  updatePlayUI() {
+    document.getElementById('play-score').innerText = this.score;
+    document.getElementById('play-coins').innerText = this.playCoins;
+    document.getElementById('play-time').innerText = this.timeLeft;
+    
+    const gauge = document.getElementById('skill-gauge');
+    const btn = document.getElementById('skill-btn');
+    const p = Math.min(100, (this.skillGauge / this.skillReq) * 100);
+    gauge.style.height = `${p}%`;
+    
+    if (p >= 100 && !this.isSkillReady) {
+      this.isSkillReady = true;
+      btn.classList.add('ready');
+      this.audio.playTone(1000, 'sine', 0.2, 0.1); // ピコン
+    } else if (p < 100) {
+      this.isSkillReady = false;
+      btn.classList.remove('ready');
+    }
+  }
+
+  addScore(val) { this.score += val; this.updatePlayUI(); }
+  
+  // 4チェーン以上でコイン発生 (ツムツム仕様)
+  addCoinFromChain(chainCount) {
+    if (chainCount < 4) return;
+    let coins = 0;
+    if (chainCount === 4) coins = 1;
+    else if (chainCount === 5) coins = 3;
+    else if (chainCount === 6) coins = 5;
+    else if (chainCount === 7) coins = 7;
+    else if (chainCount >= 8 && chainCount <= 10) coins = 10 + (chainCount-8)*3; // 10, 13, 16
+    else coins = 20 + (chainCount-11)*5; // それ以上
+    this.playCoins += coins;
+    this.updatePlayUI();
+  }
+
+  addTime(sec) { this.timeLeft += sec; this.updatePlayUI(); }
+  
+  addSkillGauge(val) {
+    if (this.isSkillReady) return;
+    this.skillGauge += val;
+    this.updatePlayUI();
+  }
+
+  createFloatText(x, y, text) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.innerText = text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    document.getElementById('game-area').appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  shuffleBoard() { this.engine.shuffle(); }
+
+  useSkill() {
+    if (!this.isSkillReady || !this.engine.isPlaying) return;
+    this.skillGauge = 0;
+    this.isSkillReady = false;
+    this.updatePlayUI();
+    this.audio.playSkill();
+
+    const myId = this.data.saveData.currentTsum;
+    const char = this.getCharData(myId);
+    const skillLv = this.data.saveData.chars[myId].skillLevel;
+    
+    // カットイン演出
+    const cutin = document.getElementById('skill-cutin');
+    document.getElementById('skill-cutin-char').innerHTML = this.createBallHTML(char);
+    document.getElementById('skill-cutin-name').innerText = char.name + ' スキル発動！';
+    cutin.style.opacity = 1;
+    
+    setTimeout(() => {
+      cutin.style.opacity = 0;
+      this.executeSkill(char, skillLv);
+    }, 800); // 演出後にスキル実行
+  }
+
+  executeSkill(char, skillLv) {
+    let res = {count:0, my:0};
+    const pow = 1 + (skillLv * 0.1); // スキルレベルによる威力補正
+
+    if (char.skill === 'custom') {
+      try {
+        // カスタムスキルの実行
+        const customFunc = new Function('game', char.customCode);
+        customFunc(this.engine);
+      } catch(e) { console.error("Custom skill error", e); }
+    } else {
+      switch(char.skill) {
+        case 'clearCenter':
+          res = this.engine.clearCenter(100 * pow); break;
+        case 'clearLarge':
+          res = this.engine.clearCenter(150 * pow); break;
+        case 'clearRandom':
+          res = this.engine.clearRandom(Math.floor(12 * pow)); break;
+        case 'clearHorizontal':
+          res = this.engine.clearHorizontal(this.engine.height/2, 100 * pow); break;
+        case 'clearVertical':
+          res = this.engine.clearVertical(this.engine.width/2, 120 * pow); break;
+        case 'spawnBomb':
+          for(let i=0; i<Math.floor(1 + skillLv/3); i++) {
+            this.engine.spawnBomb(this.engine.width/2 + (Math.random()*40-20), this.engine.height/2);
+          }
+          break;
+        case 'addTime':
+          this.addTime(Math.floor(3 * pow)); break;
+      }
+    }
+    
+    // 消去スキルだった場合、スコアとコインを加算
+    if (res.count > 0) {
+      this.addScore(res.count * 100);
+      // スキルによる消去は1つのチェーンとみなす（ツムツム準拠）
+      this.addCoinFromChain(res.count);
+      // スキルループ防止のため、スキル消去でのゲージ増加は少し減衰
+      this.skillGauge += res.my * 0.5; 
+      this.updatePlayUI();
+      if(res.count >= 7) this.engine.spawnBomb(this.engine.width/2, this.engine.height/2);
+    }
+  }
+}
+
+// 起動
+const app = new App();
+window.app = app;
+
+</script>
+</body>
+</html>
+
+
+```
