@@ -1,7 +1,7 @@
 (
 {
   "version": "1.1",
-  "updatedAt": "2026-04-09T07:34:51.564Z",
+  "updatedAt": "2026-04-09T07:52:33.474Z",
   "eventGacha": {
     "name": "(1万イベ)枢軸国ガチャ",
     "cost": 10000,
@@ -11,9 +11,6 @@
       "poland",
       "japan",
       "korea",
-      "germanempire",
-      "empireofjapan",
-      "kingdomoftaly",
       "austria",
       "germany"
     ]
@@ -22,29 +19,29 @@
     "germanempire": {
       "name": "ドイツ帝国",
       "type": "event",
-      "skill": "custom",
+      "skill": "clearLarge",
       "skillName": "ボールを大きくするよ！",
-      "skillReq": 10,
+      "skillReq": 5,
       "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Flag_of_Germany_%281867%E2%80%931918%29.svg",
-      "customCode": "game.app.audio.playTone(150, 'sawtooth', 0.8, 0.3); // 重厚な音\n\ngame.tsums.forEach(t => {\n  if (t.type === 'bomb') return;\n  if (t.dom.dataset.anschluss === \"1\") return; // 既に巨大なものはスルー\n\n  // DOMの更新\n  t.dom.dataset.anschluss = \"1\";\n  t.dom.classList.add('anschluss');\n\n  // Matter.jsの物理ボディをスケールアップ (半径を 28 から 50 に)\n  // スケール比率 = 新しい半径 / 古い半径 = 50 / 28 ≈ 1.785\n  const scale = 50 / 28;\n  Matter.Body.scale(t.body, scale, scale);\n  \n  // 巨大化した勢いで少し上に跳ねさせる(重なり解消のため)\n  const fx = (Math.random() - 0.5) * 0.05;\n  const fy = -0.1 - Math.random() * 0.05;\n  Matter.Body.applyForce(t.body, t.body.position, {x: fx, y: fy});\n});\n\n// エフェクト文字\nconst flash = document.createElement('div');\nflash.innerText = \"ANSCHLUSS!!\";\nflash.style.position = 'absolute';\nflash.style.top = '50%';\nflash.style.left = '50%';\nflash.style.transform = 'translate(-50%, -50%)';\nflash.style.fontSize = '3rem';\nflash.style.fontWeight = 'bold';\nflash.style.color = '#fff';\nflash.style.textShadow = '0 0 20px #000, 0 0 10px red';\nflash.style.zIndex = '100';\nflash.style.pointerEvents = 'none';\nflash.style.transition = 'opacity 1s ease-out';\ngame.container.appendChild(flash);\n\nsetTimeout(() => { flash.style.opacity = '0'; }, 500);\nsetTimeout(() => { flash.remove(); }, 1500);\n\nreturn {count: 0, my: 0}; // 直接消去はしない\n*/"
+      "customCode": ""
     },
     "empireofjapan": {
       "name": "大日本帝国",
       "type": "event",
-      "skill": "custom",
+      "skill": "clearHorizontal",
       "skillName": "一閃!!ボールを刀でとにかく斬りまくる!!",
       "skillReq": 5,
       "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/War_flag_of_the_Imperial_Japanese_Army_%281868%E2%80%931945%29.svg",
-      "customCode": "game.app.audio.playTone(800, 'sawtooth', 0.1, 0.2);\nsetTimeout(() => game.app.audio.playTone(1000, 'square', 0.3, 0.3), 100);\n\nconst y = game.height / 2;\nconst height = 150; \n\n// 斬撃エフェクト (DOM)\nconst slash = document.createElement('div');\nslash.style.position = 'absolute';\nslash.style.top = (y - 10) + 'px';\nslash.style.left = '-100%';\nslash.style.width = '200%';\nslash.style.height = '20px';\nslash.style.background = 'linear-gradient(to bottom, transparent, white, transparent)';\nslash.style.boxShadow = '0 0 20px white, 0 0 40px red';\nslash.style.transform = 'rotate(-5deg)';\nslash.style.zIndex = '100';\nslash.style.pointerEvents = 'none';\nslash.style.transition = 'left 0.2s ease-out, opacity 0.4s ease-in';\ngame.container.appendChild(slash);\n\n// アニメーション実行\nrequestAnimationFrame(() => {\n  slash.style.left = '-50%';\n  setTimeout(() => { slash.style.opacity = '0'; }, 200);\n  setTimeout(() => { slash.remove(); }, 600);\n});\n\n// 消去処理\nlet res = game.clearHorizontal(y, height);\nreturn res; // スキルの結果(消去数)をAppクラスに返す\n*/"
+      "customCode": ""
     },
     "kingdomoftaly": {
       "name": "イタリア王国",
       "type": "event",
-      "skill": "custom",
+      "skill": "addTime",
       "skillName": "5秒間すべてのボールを消せるよ",
-      "skillReq": 20,
+      "skillReq": 5,
       "flagUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Italy_%281861-1946%29_crowned.svg",
-      "customCode": "game.app.audio.playTone(1200, 'sine', 0.5, 0.1);\n\n// 全ツムの見た目を白旗風(またはモノクロ)にし、種類を一時的に統一する\ngame.tsums.forEach(t => {\n  if(t.type === 'bomb') return;\n  t.originalType = t.type;\n  t.type = 'italy_white'; // 全て同じ種類にする\n  t.dom.style.filter = 'grayscale(100%) brightness(200%)';\n  t.dom.style.border = '3px solid #ccc';\n});\n\n// 新しく降ってくるツムも一時的に白旗化するためのフラグを立てる\ngame.isItalySkillActive = true;\n\n// spawnTsumメソッドを一時的にハイジャック(オーバーライド)して新規ツムも白化する\nif (!game.originalSpawnTsum) {\n  game.originalSpawnTsum = game.spawnTsum;\n  game.spawnTsum = function(isAnschluss, isIsrael) {\n    this.originalSpawnTsum(isAnschluss, isIsrael);\n    if (this.isItalySkillActive) {\n      const lastTsum = this.tsums[this.tsums.length - 1];\n      if (lastTsum && lastTsum.type !== 'bomb') {\n        lastTsum.originalType = lastTsum.type;\n        lastTsum.type = 'italy_white';\n        lastTsum.dom.style.filter = 'grayscale(100%) brightness(200%)';\n        lastTsum.dom.style.border = '3px solid #ccc';\n      }\n    }\n  };\n}\n\n// 5秒後に元に戻す\nsetTimeout(() => {\n  game.app.audio.playTone(600, 'sine', 0.5, 0.1);\n  game.isItalySkillActive = false;\n  \n  // 盤面上のツムを元の状態に戻す\n  game.tsums.forEach(t => {\n    if(t.type === 'bomb') return;\n    if(t.originalType) {\n      t.type = t.originalType;\n      t.dom.style.filter = '';\n      t.dom.style.border = '';\n      delete t.originalType;\n    }\n  });\n}, 5000);\n\nreturn {count: 0, my: 0}; // 直接消去はしないので0を返す\n*/"
+      "customCode": ""
     }
   }
 }
