@@ -11,6 +11,9 @@
       "poland",
       "japan",
       "korea",
+      "germanempire",
+      "empireofjapan",
+      "kingdomoftaly",
       "austria",
       "germany"
     ]
